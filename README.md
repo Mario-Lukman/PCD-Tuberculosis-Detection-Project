@@ -10,7 +10,7 @@ Authors: Mario Aloysius Lukman, Krisna Dwi, Naila Salma Yusroini, Aufa Sultan Ma
    pip install -r requirements.txt
    ```
 
-2. **Train the model**:
+2. **Train the model (Optional, download the 'model' folder for trained model)**:
    ```bash
    python train.py
    ```
@@ -41,3 +41,4 @@ The dataset is too large to be included in this repository. Please download it f
 - **config.py**: Configuration settings
 - **models/**: Directory for saved models
 - **static/** & **templates/**: Frontend files
+
