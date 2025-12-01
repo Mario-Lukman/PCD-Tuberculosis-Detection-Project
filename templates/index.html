@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TB Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">TB Detection System</h1>
+            <p class="subtitle">Upload a chest X-ray image for analysis</p>
+        </div>
+
+        <div class="upload-section">
+            <form id="uploadForm" method="post" enctype="multipart/form-data" action="/predict">
+                <input type="file" name="file" id="fileInput" accept="image/*" required style="display: none;">
+                
+                <div class="upload-card">
+                    <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click();">
+                        <div class="upload-content">
+                            <svg class="upload-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                            </svg>
+                            <div class="upload-title">Click to Upload Image</div>
+                            <div class="upload-text">Supported formats: PNG, JPG, JPEG</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="analyze-btn" id="analyzeBtn">Analyze X-Ray</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="resultContainer" class="results-section" style="display: none;">
+            <!-- Prediction Result -->
+            <div class="result-card">
+                <h2 class="section-title">Prediction Result</h2>
+                
+                <div id="predictionBox" class="prediction-box">
+                    <!-- Filled by JS -->
+                </div>
+                
+                <div class="confidence-section">
+                    <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">Confidence Score</p>
+                    <div class="confidence-bar">
+                        <div id="confidenceFill" class="confidence-fill"></div>
+                        <span id="confidenceText" class="confidence-text">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="visualization-card">
+                <h2 class="section-title">Visualization</h2>
+                <div class="image-grid" id="imageGrid">
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2025 TB Detection System | Model: {{ model_info.model_name if model_info else 'Not Loaded' }}</p>
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const resultContainer = document.getElementById('resultContainer');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        // Handle file selection
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                document.querySelector('.upload-title').textContent = file.name;
+            }
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Please select a file first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            // Show loading state
+            analyzeBtn.textContent = 'Analyzing...';
+            analyzeBtn.disabled = true;
+            resultContainer.style.display = 'none';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alert(result.error);
+                } else {
+                    displayResults(result);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred during analysis.');
+            } finally {
+                analyzeBtn.textContent = 'Analyze X-Ray';
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayResults(result) {
+            resultContainer.style.display = 'grid';
+            
+            // Update prediction box
+            const box = document.getElementById('predictionBox');
+            box.className = 'prediction-box ' + (result.prediction === 'Normal' ? 'normal' : 'tb');
+            box.innerHTML = `<div class="prediction-label">${result.prediction}</div>`;
+            
+            // Update confidence bar
+            const fill = document.getElementById('confidenceFill');
+            const text = document.getElementById('confidenceText');
+            
+            // Simple width update without transition class if CSS handles it or just direct
+            fill.style.width = result.confidence + '%';
+            text.textContent = result.confidence.toFixed(1) + '%';
+            
+            // Update images
+            const grid = document.getElementById('imageGrid');
+            grid.innerHTML = '';
+            
+            const images = {
+                'Original X-Ray': result.images.original,
+                'Lung Mask': result.images.mask,
+                'Segmented Lung': result.images.segmented,
+                'Translucent Overlay': result.images.overlay
+            };
+            
+            for (const [label, src] of Object.entries(images)) {
+                const div = document.createElement('div');
+                div.className = 'image-item';
+                div.innerHTML = `
+                    <img src="${src}" alt="${label}">
+                    <div class="image-label">${label}</div>
+                `;
+                grid.appendChild(div);
+            }
+            
+            // Scroll to results
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
