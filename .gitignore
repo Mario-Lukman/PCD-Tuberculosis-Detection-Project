@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Dataset (Too large for GitHub)
+TB_Chest_Radiography_Database/
+
+# Uploads
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
